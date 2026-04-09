@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #00ff9f;
+  --accent2: #7c3aed;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #0a0a0f;
+  font-family: 'Space Grotesk', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,255,159,0.015) 2px,
+    rgba(0,255,159,0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Grid background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,255,159,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,159,0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Glow text */
+.glow-text {
+  text-shadow: 0 0 20px rgba(0,255,159,0.5), 0 0 60px rgba(0,255,159,0.2);
+}
+
+/* Card hover */
+.project-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.project-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0,255,159,0.4);
+  box-shadow: 0 20px 40px rgba(0,255,159,0.1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #2a2a3f; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #00ff9f44; }
+
+/* Cursor blink */
+.cursor::after {
+  content: '_';
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Animate on scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Tag badge */
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0,255,159,0.08);
+  border: 1px solid rgba(0,255,159,0.2);
+  color: #00ff9f;
+}
+
+/* Input styles */
+input, textarea, select {
+  background: #12121a !important;
+  border: 1px solid #2a2a3f !important;
+  color: white !important;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(0,255,159,0.5) !important;
+}
