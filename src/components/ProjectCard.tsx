@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Image from 'next/image'
-import { type Project } from '@/lib/supabase'
+import { type Project } from '@/lib/types'
 
 const categoryColor: Record<string, string> = {
   web:    'text-blue-400 border-blue-400/30 bg-blue-400/10',

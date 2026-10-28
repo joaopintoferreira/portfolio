@@ -1,4 +1,4 @@
-import { type Document } from '@/lib/supabase'
+import { type Document } from '@/lib/types'
 
 const typeLabel: Record<string, { label: string; icon: string; color: string }> = {
   cv: { label: 'Currículo', icon: '◉', color: 'text-accent' },

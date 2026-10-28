@@ -31,7 +31,7 @@ export default function Footer() {
         </div>
 
         <span className="font-mono text-xs text-muted">
-          built with Next.js + Supabase + Vercel
+          built with Next.js + Neon + Vercel
         </span>
       </div>
     </footer>

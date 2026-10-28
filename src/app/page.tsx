@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { supabase, type Project, type Document } from '@/lib/supabase'
+import { type Project, type Document } from '@/lib/types'
 import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
 import Skills from '@/components/Skills'
@@ -14,15 +14,28 @@ export default function Home() {
   const [docs, setDocs] = useState<Document[]>([])
   const [filter, setFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
+    // A ordenação (destaques primeiro, mais recentes primeiro) é feita pela API.
+    async function load<T>(url: string): Promise<T[] | null> {
+      try {
+        const res = await fetch(url)
+        if (!res.ok) return null
+        const data = await res.json()
+        return Array.isArray(data) ? data : null
+      } catch {
+        return null
+      }
+    }
     async function fetchData() {
-      const [{ data: projectsData }, { data: docsData }] = await Promise.all([
-        supabase.from('projects').select('*').order('featured', { ascending: false }).order('created_at', { ascending: false }),
-        supabase.from('documents').select('*').order('created_at', { ascending: false }),
+      const [projectsData, docsData] = await Promise.all([
+        load<Project>('/api/projects'),
+        load<Document>('/api/documents'),
       ])
       setProjects(projectsData || [])
       setDocs(docsData || [])
+      setLoadError(projectsData === null)
       setLoading(false)
     }
     fetchData()
@@ -80,7 +93,7 @@ export default function Home() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-muted font-mono">
             <p className="text-5xl mb-4">{'{ }'}</p>
-            <p>Nenhum projeto cadastrado ainda.</p>
+            <p>{loadError ? 'Não foi possível carregar os projetos.' : 'Nenhum projeto cadastrado ainda.'}</p>
             <a href="/admin" className="text-accent hover:underline text-sm mt-2 block">
               → Adicionar projetos no painel admin
             </a>

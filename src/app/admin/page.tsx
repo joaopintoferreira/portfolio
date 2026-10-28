@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { supabase, type Project, type Document } from '@/lib/supabase'
+import { upload } from '@vercel/blob/client'
+import { checkFile } from '@/lib/upload-policy'
+import { type Project, type Document } from '@/lib/types'
 
 type Tab = 'projects' | 'docs'
 type ProjectForm = Omit<Project, 'id' | 'created_at'>
@@ -19,8 +21,11 @@ const emptyForm: ProjectForm = {
   featured: false,
 }
 
+type ApiResult = { ok: boolean; status: number; data: any }
+
 export default function AdminPage() {
   const [auth, setAuth] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
 
@@ -46,55 +51,103 @@ export default function AdminPage() {
 
   const [uploadingGallery, setUploadingGallery] = useState(false)
 
+  // A sessão é o cookie HttpOnly emitido por /api/auth; o servidor é a única autoridade.
   useEffect(() => {
-    const ok = sessionStorage.getItem('admin_ok')
-    if (ok === '1') setAuth(true)
+    fetch('/api/auth')
+      .then(r => r.json())
+      .then(d => setAuth(d?.ok === true))
+      .catch(() => setAuth(false))
+      .finally(() => setChecking(false))
   }, [])
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    fetch('/api/auth', {
-      method: 'POST',
-      body: JSON.stringify({ password }),
-      headers: { 'Content-Type': 'application/json' },
-    }).then(r => r.json()).then(d => {
-      if (d.ok) { sessionStorage.setItem('admin_ok', '1'); setAuth(true) }
-      else setAuthError('Senha incorreta.')
-    })
+    setAuthError('')
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.ok) { setPassword(''); setAuth(true) }
+      else if (res.status === 429) setAuthError('Muitas tentativas. Tente novamente mais tarde.')
+      else if (res.status === 401) setAuthError('Senha incorreta.')
+      else if (res.status === 403) setAuthError('Origem não permitida.')
+      else setAuthError('Servidor indisponível ou não configurado.')
+    } catch {
+      setAuthError('Erro de rede. Tente novamente.')
+    }
+  }
+
+  async function handleLogout() {
+    try { await fetch('/api/auth', { method: 'DELETE' }) } catch {}
+    setAuth(false)
+    setShowForm(false)
   }
 
   useEffect(() => { if (auth) fetchAll() }, [auth])
-
-  async function fetchAll() {
-    setLoading(true)
-    const [{ data: p }, { data: d }] = await Promise.all([
-      supabase.from('projects').select('*').order('created_at', { ascending: false }),
-      supabase.from('documents').select('*').order('created_at', { ascending: false }),
-    ])
-    setProjects(p || [])
-    setDocs(d || [])
-    setLoading(false)
-  }
 
   function flash(text: string) {
     setMsg(text)
     setTimeout(() => setMsg(''), 3500)
   }
 
+  // Chamada à API. 401 = sessão expirada/ausente: volta ao login. Nunca lança.
+  async function api(method: string, url: string, body?: unknown): Promise<ApiResult> {
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      })
+      const data = await res.json().catch(() => null)
+      if (res.status === 401) {
+        setAuth(false)
+        setAuthError('Sessão expirada. Faça login novamente.')
+      }
+      return { ok: res.ok, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0, data: null }
+    }
+  }
+
+  function apiError(r: ApiResult) {
+    if (r.status === 401) return '✗ Sessão expirada. Faça login novamente.'
+    if (r.status === 0) return '✗ Erro de rede. Tente novamente.'
+    return '✗ Erro: ' + (r.data?.error || `falha (${r.status})`)
+  }
+
+  async function fetchAll() {
+    setLoading(true)
+    const [p, d] = await Promise.all([
+      api('GET', '/api/projects?sort=recent'),
+      api('GET', '/api/documents'),
+    ])
+    if (p.ok && Array.isArray(p.data)) setProjects(p.data)
+    else if (p.status !== 401) flash(apiError(p))
+    if (d.ok && Array.isArray(d.data)) setDocs(d.data)
+    else if (d.status !== 401 && p.status !== 401) flash(apiError(d))
+    setLoading(false)
+  }
+
+  // Upload direto ao Vercel Blob; o servidor (/api/upload) valida a sessão e emite um token restrito.
+  async function uploadToBlob(file: File, folder: string, kind: 'image' | 'pdf'): Promise<string> {
+    const ext = checkFile(file, kind)
+    const blob = await upload(`${folder}/${Date.now()}.${ext}`, file, {
+      access: 'public',
+      handleUploadUrl: '/api/upload',
+      contentType: file.type,
+    })
+    return blob.url
+  }
+
   async function uploadImage(file: File, folder = 'projects'): Promise<string> {
-    const ext = file.name.split('.').pop()
-    const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
-    const { error } = await supabase.storage.from('images').upload(path, file, { upsert: true })
-    if (error) throw error
-    return supabase.storage.from('images').getPublicUrl(path).data.publicUrl
+    return uploadToBlob(file, folder, 'image')
   }
 
   async function uploadDoc(file: File): Promise<string> {
-    const ext = file.name.split('.').pop()
-    const path = `docs/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('docs').upload(path, file, { upsert: true })
-    if (error) throw error
-    return supabase.storage.from('docs').getPublicUrl(path).data.publicUrl
+    return uploadToBlob(file, 'docs', 'pdf')
   }
 
   // Upload galeria imediatamente ao selecionar
@@ -119,8 +172,8 @@ export default function AdminPage() {
     const newUrls = (form.gallery_urls || []).filter(u => u !== url)
     setForm(f => ({ ...f, gallery_urls: newUrls }))
     if (editingId) {
-      await supabase.from('projects').update({ gallery_urls: newUrls }).eq('id', editingId)
-      flash('✓ Imagem removida da galeria')
+      const r = await api('PATCH', `/api/projects/${editingId}`, { gallery_urls: newUrls })
+      flash(r.ok ? '✓ Imagem removida da galeria' : apiError(r))
     }
   }
 
@@ -129,8 +182,8 @@ export default function AdminPage() {
     setForm(f => ({ ...f, image_url: '' }))
     if (imageRef.current) imageRef.current.value = ''
     if (editingId) {
-      await supabase.from('projects').update({ image_url: '' }).eq('id', editingId)
-      flash('✓ Imagem de capa removida')
+      const r = await api('PATCH', `/api/projects/${editingId}`, { image_url: '' })
+      flash(r.ok ? '✓ Imagem de capa removida' : apiError(r))
     }
   }
 
@@ -139,8 +192,8 @@ export default function AdminPage() {
     setForm(f => ({ ...f, doc_url: '' }))
     if (projDocRef.current) projDocRef.current.value = ''
     if (editingId) {
-      await supabase.from('projects').update({ doc_url: '' }).eq('id', editingId)
-      flash('✓ Documento removido do projeto')
+      const r = await api('PATCH', `/api/projects/${editingId}`, { doc_url: '' })
+      flash(r.ok ? '✓ Documento removido do projeto' : apiError(r))
     }
   }
 
@@ -158,13 +211,14 @@ export default function AdminPage() {
       if (projDocRef.current?.files?.[0]) {
         payload.doc_url = await uploadDoc(projDocRef.current.files[0])
       }
-      if (editingId) {
-        await supabase.from('projects').update(payload).eq('id', editingId)
-        flash('✓ Projeto atualizado!')
-      } else {
-        await supabase.from('projects').insert(payload)
-        flash('✓ Projeto adicionado!')
+      const r = editingId
+        ? await api('PATCH', `/api/projects/${editingId}`, payload)
+        : await api('POST', '/api/projects', payload)
+      if (!r.ok) {
+        flash(apiError(r)) // mantém o formulário aberto com os dados preenchidos
+        return
       }
+      flash(editingId ? '✓ Projeto atualizado!' : '✓ Projeto adicionado!')
       setShowForm(false)
       setEditingId(null)
       setForm(emptyForm)
@@ -199,7 +253,8 @@ export default function AdminPage() {
 
   async function deleteProject(id: string) {
     if (!confirm('Excluir este projeto? Esta ação não pode ser desfeita.')) return
-    await supabase.from('projects').delete().eq('id', id)
+    const r = await api('DELETE', `/api/projects/${id}`)
+    if (!r.ok) return flash(apiError(r))
     flash('Projeto excluído.')
     fetchAll()
   }
@@ -210,7 +265,8 @@ export default function AdminPage() {
     setDocSaving(true)
     try {
       const url = await uploadDoc(docFileRef.current.files[0])
-      await supabase.from('documents').insert({ ...docForm, file_url: url })
+      const r = await api('POST', '/api/documents', { ...docForm, file_url: url })
+      if (!r.ok) return flash(apiError(r))
       flash('✓ Documento adicionado!')
       setDocForm({ title: '', type: 'cv' })
       if (docFileRef.current) docFileRef.current.value = ''
@@ -224,10 +280,13 @@ export default function AdminPage() {
 
   async function deleteDoc(id: string) {
     if (!confirm('Excluir este documento? Esta ação não pode ser desfeita.')) return
-    await supabase.from('documents').delete().eq('id', id)
+    const r = await api('DELETE', `/api/documents/${id}`)
+    if (!r.ok) return flash(apiError(r))
     flash('✓ Documento excluído.')
     fetchAll()
   }
+
+  if (checking) return <div className="min-h-screen grid-bg" />
 
   // ── LOGIN ──
   if (!auth) {
@@ -261,7 +320,7 @@ export default function AdminPage() {
           <span className="text-border">|</span>
           <span className="font-mono text-xs text-muted">admin panel</span>
         </div>
-        <button onClick={() => { sessionStorage.removeItem('admin_ok'); setAuth(false) }}
+        <button onClick={handleLogout}
           className="font-mono text-xs text-muted hover:text-red-400 transition-colors">
           sair →
         </button>
