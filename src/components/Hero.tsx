@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
-const roles = ['Full-Stack Developer', 'Embedded Systems Dev', 'IoT Engineer', 'Mobile Developer']
+const roles = ['Full-Stack Developer', 'Embedded Systems Dev']
 
 export default function Hero() {
   const [roleIdx, setRoleIdx] = useState(0)
@@ -68,9 +68,7 @@ export default function Hero() {
               <span className="text-accent animate-pulse">_</span>
             </div>
             <p className="text-muted text-base md:text-lg leading-relaxed max-w-xl mb-8 mx-auto lg:mx-0 animate-fade-up" style={{ animationDelay: '0.4s' }}>
-              Desenvolvedor full-stack com atuação em sistemas web, bancos de dados relacionais e não relacionais, além de soluções embarcadas.
-              Tenho experiência no desenvolvimento de aplicações com Python, PostgreSQL, MongoDB e JavaScript,
-              além de projetos IoT com ESP32 e ESP-IDF, integrando software e hardware para criar soluções completas.
+              Desenvolvedor full-stack com sólida atuação em sistemas web, bancos de dados (relacionais e NoSQL) e soluções embarcadas. Possuo experiência no desenvolvimento de aplicações utilizando Python, JavaScript, PostgreSQL e MongoDB, com foco na integração perfeita entre software e hardware para entregar soluções tecnológicas completas.
             </p>
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start animate-fade-up" style={{ animationDelay: '0.5s' }}>
               <a href="#projetos"

@@ -49,9 +49,9 @@ export default function Home() {
     )
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
     return () => observer.disconnect()
-  }, [projects])
+  }, [projects, filter])
 
-  const categories = ['all', 'web', 'mobile', 'iot', 'other']
+  const categories = ['all', 'web', 'other']
   const filtered = filter === 'all' ? projects : projects.filter(p => p.category === filter)
 
   return (
