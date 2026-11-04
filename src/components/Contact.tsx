@@ -17,13 +17,13 @@ const socials = [
   },
   {
     label: 'WhatsApp',
-    href: 'https://wa.me/5548988086252',
+    href: 'https://wa.me/5585981235848',
     icon: FaWhatsapp,
     color: 'hover:text-green-400 hover:border-green-400/40',
   },
   {
     label: 'Instagram',
-    href: 'https://www.instagram.com/joaopinto.ferreira',
+    href: 'https://www.instagram.com/dev.joao_pinto_ferreira/',
     icon: FaInstagram,
     color: 'hover:text-pink-400 hover:border-pink-400/40',
   },
@@ -74,10 +74,10 @@ export default function Contact() {
               className="flex items-center gap-3 text-muted hover:text-accent transition-colors font-mono text-sm">
               <span className="text-accent">@</span> jocifer95@gmail.com
             </a>
-            <a href="https://wa.me/5548988086252" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/5585981235848" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 text-muted hover:text-green-400 transition-colors font-mono text-sm">
               <FaWhatsapp className="text-green-400" size={14} />
-              +55 (48) 98808-6252
+              +55 (85) 98123-5848
             </a>
           </div>
 

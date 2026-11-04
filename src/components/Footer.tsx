@@ -3,8 +3,8 @@ import { FaGithub, FaLinkedin, FaWhatsapp, FaInstagram } from 'react-icons/fa'
 const socials = [
   { label: 'GitHub',    href: 'https://github.com/joaopintoferreira',                          icon: FaGithub },
   { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/jo%C3%A3o-pinto-ferreira-267556294/', icon: FaLinkedin },
-  { label: 'WhatsApp',  href: 'https://wa.me/5548988086252',                                    icon: FaWhatsapp },
-  { label: 'Instagram', href: 'https://www.instagram.com/joaopinto.ferreira',                   icon: FaInstagram },
+  { label: 'WhatsApp',  href: 'https://wa.me/5585981235848',                                    icon: FaWhatsapp },
+  { label: 'Instagram', href: 'https://www.instagram.com/dev.joao_pinto_ferreira/',              icon: FaInstagram },
 ]
 
 export default function Footer() {
